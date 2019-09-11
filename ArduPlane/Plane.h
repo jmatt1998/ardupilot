@@ -101,6 +101,9 @@
 #include "quadplane.h"
 #include "tuning.h"
 
+// Modified 08/22/19
+#include "chirp.h"
+
 // Configuration
 #include "config.h"
 
@@ -1063,7 +1066,6 @@ private:
     bool allow_reverse_thrust(void) const;
     bool have_reverse_thrust(void) const;
     int16_t get_throttle_input(bool no_deadzone=false) const;
-
     // support for AP_Avoidance custom flight mode, AVOID_ADSB
     bool avoid_adsb_init(bool ignore_checks);
     void avoid_adsb_run();

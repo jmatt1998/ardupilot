@@ -199,7 +199,7 @@ void Plane::read_radio()
         channel_throttle->recompute_pwm_no_deadzone();
         channel_rudder->recompute_pwm_no_deadzone();
     }
-
+  
     control_failsafe();
 
     if (g.throttle_nudge && channel_throttle->get_control_in() > 50 && geofence_stickmixing()) {

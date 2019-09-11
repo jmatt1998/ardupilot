@@ -18,6 +18,8 @@
 
 #include "Plane.h"
 #include <utility>
+// Modified 08/22/19
+#include "chirp.h"
 
 /*****************************************
 * Throttle slew limit
@@ -323,10 +325,26 @@ void Plane::set_servos_idle(void)
  */
 void Plane::set_servos_manual_passthrough(void)
 {
-    SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, channel_roll->get_control_in_zero_dz());
-    SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, channel_pitch->get_control_in_zero_dz());
-    SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, channel_rudder->get_control_in_zero_dz());
-    SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, get_throttle_input(true));
+    if (control_mode == &mode_fbwa && chirp == 1) {
+        // 08/22: Set aileron from chirp signal, set other servos manually
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, d_aileron);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, channel_pitch->get_control_in_zero_dz());
+        SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, channel_rudder->get_control_in_zero_dz());
+        SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, get_throttle_input(true));
+    }
+    else {
+        // Set servos as manual mode
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, channel_roll->get_control_in_zero_dz());
+        SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, channel_pitch->get_control_in_zero_dz());
+        SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, channel_rudder->get_control_in_zero_dz());
+        SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, get_throttle_input(true));
+    }
+        AP::logger().Write("CHR2","TimeUS,da-desired,stick_da,stick_de,chirp","QfhhQ",
+                           AP_HAL::micros64(),
+                           d_aileron,
+                           channel_roll->get_control_in_zero_dz(),
+                           channel_pitch->get_control_in_zero_dz(),
+                           chirp);      
 }
 
 /*
@@ -711,7 +729,9 @@ void Plane::set_servos(void)
     SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, steering_control.rudder);
     SRV_Channels::set_output_scaled(SRV_Channel::k_steering, steering_control.steering);
 
-    if (control_mode == &mode_manual) {
+    if (control_mode == &mode_manual ||
+        // 08/22: Call during FBWA aileron chirp
+        chirp == 1) {
         set_servos_manual_passthrough();
     } else {
         set_servos_controlled();
