@@ -1,16 +1,16 @@
 #include "mode.h"
 #include "Plane.h"
 uint64_t t_in_fbwa;
-uint64_t t0_fbwa = 0;
+uint64_t t0_fbwa;
 uint64_t t_last = 0;
 uint64_t t_current;
 float theta_sine;
-float dt;
+float time_step_;
 float wmin;
 float wmax;
 float Trec;
 float K_sine;
-float omega;
+float omega_rps;
 float d_aileron;
 uint64_t chirp;
 
@@ -19,6 +19,7 @@ bool ModeFBWA::_enter()
     plane.throttle_allows_nudging = false;
     plane.auto_throttle_mode = false;
     plane.auto_navigation_mode = false;
+    t0_fbwa = 0;
 
     return true;
 }
@@ -34,7 +35,7 @@ void ModeFBWA::update()
     t_in_fbwa = t0_fbwa; //ms
     t_in_fbwa = millis() - t_in_fbwa;
     t_current = millis(); //ms
-    dt = t_current - t_last; //ms
+    time_step_ = t_current - t_last; //ms
     t_last = t_current; //ms
 
     if (t_in_fbwa < 25*1000) {
@@ -44,15 +45,15 @@ void ModeFBWA::update()
         Trec = 25; //s
         if (t_in_fbwa < 1000*2*3.14159/(2*wmin)) { // First half period, 1 s
             K_sine = 0.0187*(expf(4*(t_in_fbwa/1000)/Trec)-1);
-			omega = wmin;
-			theta_sine += 0.001*omega*dt;
+			omega_rps = wmin;
+			theta_sine += 0.001*omega_rps*time_step_;
             d_aileron = 0.5*450*sinf(theta_sine);
             SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, d_aileron);
         }
         if (t_in_fbwa >= 1000*2*3.14159/(2*wmin)) {
             K_sine = 0.0187*(expf(4*(t_in_fbwa/1000)/Trec)-1);
-			omega = wmin+K_sine*(wmax-wmin);
-			theta_sine += omega*dt*0.001;
+			omega_rps = wmin+K_sine*(wmax-wmin);
+			theta_sine += omega_rps*time_step_*0.001;
             d_aileron = 450*sinf(theta_sine);
             SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, d_aileron);
         }
@@ -90,7 +91,4 @@ void ModeFBWA::update()
             }
         }
     }
-    AP::logger().Write("CHRP","TimeUS,da-desired","Qf",
-                       AP_HAL::micros64(),
-                       d_aileron);
 }
