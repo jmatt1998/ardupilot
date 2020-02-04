@@ -368,6 +368,11 @@ void Plane::stabilize()
     }
     float speed_scaler = get_speed_scaler();
 
+        // Added 08/22/19: Don't stabilize FBWA during chirp
+    if (chirp == 1) {
+        return;
+    }
+
     if (quadplane.in_tailsitter_vtol_transition()) {
         /*
           during transition to vtol in a tailsitter try to raise the
